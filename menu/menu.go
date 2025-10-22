@@ -75,7 +75,7 @@ func (m Model) Init() tea.Cmd {
 }
 
 func (m *Model) lang() *language.Language {
-	return m.player.LanguagePreference.Lang
+	return language.Languages[m.player.LanguagePreference]
 }
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {

@@ -13,9 +13,14 @@ var enJSON []byte
 //go:embed es.json
 var esJSON []byte
 
+const (
+	LanguageEN = "en"
+	LanguageES = "es"
+)
+
 var Languages = map[string]*Language{
-	"EN": LoadLanguage(enJSON),
-	"ES": LoadLanguage(esJSON),
+	LanguageEN: LoadLanguage(enJSON),
+	LanguageES: LoadLanguage(esJSON),
 }
 
 type Language struct {

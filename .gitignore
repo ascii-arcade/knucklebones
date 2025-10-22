@@ -4,3 +4,4 @@ __debug*
 bin/
 .ssh/
 .env*
+.vscode/

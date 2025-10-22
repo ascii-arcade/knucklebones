@@ -10,6 +10,7 @@ import (
 	"github.com/ascii-arcade/knucklebones/language"
 	"github.com/ascii-arcade/knucklebones/utils"
 	"github.com/google/uuid"
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 var players = make(map[string]*Player)
@@ -27,10 +28,7 @@ func NewPlayer(ctx context.Context, pkn, pk, langPref string) (*Player, error) {
 		SshPubKeys:         map[string]string{pkn: pk},
 		LanguagePreference: langPref,
 
-		score:      0,
 		updateChan: make(chan struct{}),
-		board:      board,
-		pool:       make(dice.DicePool, 1),
 		ctx:        ctx,
 	}
 
@@ -131,16 +129,30 @@ func RemovePlayer(player *Player) {
 	}
 }
 
-func GetPlayerCount() int {
-	return len(players)
+func GetUniquePlayerCount() int {
+	count, err := database.GetDB().Collection(database.CollectionPlayers).CountDocuments(context.Background(), bson.D{
+		{
+			Key: "visitor", Value: bson.D{{Key: "$ne", Value: true}},
+		},
+	})
+	if err != nil {
+		return 0
+	}
+	return int(count)
+}
+
+func GetVisitorPlayerCount() int {
+	count, err := database.GetDB().Collection(database.CollectionPlayers).CountDocuments(context.Background(), bson.D{
+		{
+			Key: "visitor", Value: true,
+		},
+	})
+	if err != nil {
+		return 0
+	}
+	return int(count)
 }
 
 func GetConnectedPlayerCount() int {
-	count := 0
-	for _, player := range players {
-		if player.connected {
-			count++
-		}
-	}
-	return count
+	return len(players)
 }

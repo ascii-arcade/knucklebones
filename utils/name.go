@@ -1,4 +1,4 @@
-package generaterandom
+package utils
 
 import (
 	"fmt"

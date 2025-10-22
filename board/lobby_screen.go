@@ -36,7 +36,7 @@ func (s *lobbyScreen) Update(msg tea.Msg) (any, tea.Cmd) {
 
 	case tea.KeyMsg:
 		if keys.LobbyStartGame.TriggeredBy(msg.String()) {
-			if s.model.player.IsHost() {
+			if s.model.game.GetPlayerData(s.model.player).IsHost {
 				if err := s.model.game.Begin(); err != nil {
 					s.model.error = s.model.lang().Get("error", err.Error())
 					return s.model, nil
@@ -61,7 +61,7 @@ func (s *lobbyScreen) View() string {
 	style := s.style.Width(s.model.width / 2)
 
 	footer := s.model.lang().Get("board", "waiting_for_start")
-	if s.model.player.IsHost() {
+	if s.model.game.GetPlayerData(s.model.player).IsHost {
 		footer = fmt.Sprintf(s.model.lang().Get("board", "press_to_start"), keys.LobbyStartGame.String(s.style))
 
 		if err := s.model.game.IsPlayerCountOk(); err != nil {
@@ -103,7 +103,7 @@ func (s *lobbyScreen) playerList() string {
 		if p.Name == s.model.player.Name {
 			playerList += fmt.Sprintf(" (%s)", s.model.lang().Get("board", "player_list_you"))
 		}
-		if p.IsHost() {
+		if s.model.game.GetPlayerData(s.model.player).IsHost {
 			playerList += fmt.Sprintf(" (%s)", s.model.lang().Get("board", "player_list_host"))
 		}
 		playerList += "\n"

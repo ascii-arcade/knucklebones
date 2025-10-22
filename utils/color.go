@@ -1,4 +1,4 @@
-package generaterandom
+package utils
 
 import "math/rand/v2"
 

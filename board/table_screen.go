@@ -83,7 +83,7 @@ func (s *tableScreen) Update(msg tea.Msg) (any, tea.Cmd) {
 			}
 		}
 
-		if keys.ActionRestart.TriggeredBy(msg.String()) && s.model.player.IsHost() && s.model.game.Finished {
+		if keys.ActionRestart.TriggeredBy(msg.String()) && s.model.game.GetPlayerData(s.model.player).IsHost && s.model.game.Finished {
 			s.model.game.Reset()
 		}
 	}
@@ -96,17 +96,16 @@ func (s *tableScreen) View() string {
 		Width(s.model.width-2).
 		Height(s.model.height-2).
 		BorderStyle(lipgloss.RoundedBorder()).
-		BorderForeground(s.model.game.GetTurnPlayer().Color).
+		BorderForeground(s.model.game.GetTurnPlayerData().Color).
 		Align(lipgloss.Center, lipgloss.Center)
 
 	if s.model.game.Finished {
 		mainPanelStyle = mainPanelStyle.
-			BorderForeground(s.model.player.Color)
-
+			BorderForeground(s.model.game.GetPlayerData(s.model.player).Color)
 		content := []string{
-			fmt.Sprintf(s.model.lang().Get("board", "game_over"), s.model.game.Winner().StyledPlayerName(s.style)),
+			fmt.Sprintf(s.model.lang().Get("board", "game_over"), s.model.game.WinnerData().StyledPlayerName(s.style)),
 		}
-		if s.model.player.IsHost() {
+		if s.model.game.GetPlayerData(s.model.player).IsHost {
 			content = append(content, fmt.Sprintf(s.model.lang().Get("board", "reset_game"), keys.ActionRestart.String(s.style)))
 		}
 		return mainPanelStyle.Render(
@@ -130,15 +129,15 @@ func (s *tableScreen) View() string {
 		Width(33).
 		Height(17)
 
-	me := s.model.player
-	them := s.model.game.GetOpponent(s.model.player)
+	me := s.model.game.GetPlayerData(s.model.player)
+	them := s.model.game.GetOpponentData(s.model.player)
 
 	boardTop := boardStyle.Render(
 		lipgloss.JoinHorizontal(
 			lipgloss.Center,
-			them.Board[0].Render(true),
-			them.Board[1].Render(true),
-			them.Board[2].Render(true),
+			them.Board()[0].Render(true),
+			them.Board()[1].Render(true),
+			them.Board()[2].Render(true),
 		),
 	)
 
@@ -150,9 +149,9 @@ func (s *tableScreen) View() string {
 				lipgloss.Center,
 				lipgloss.JoinHorizontal(
 					lipgloss.Center,
-					me.Board[0].Render(false),
-					me.Board[1].Render(false),
-					me.Board[2].Render(false),
+					me.Board()[0].Render(false),
+					me.Board()[1].Render(false),
+					me.Board()[2].Render(false),
 				),
 				lipgloss.JoinHorizontal(
 					lipgloss.Center,
@@ -170,8 +169,8 @@ func (s *tableScreen) View() string {
 			lipgloss.JoinVertical(
 				lipgloss.Center,
 				them.StyledPlayerName(s.style),
-				strconv.Itoa(score.Calculate(them.Board)),
-				them.Pool.Render(false),
+				strconv.Itoa(score.Calculate(them.Board())),
+				them.Pool().Render(false),
 			),
 		)
 
@@ -181,9 +180,9 @@ func (s *tableScreen) View() string {
 		Render(
 			lipgloss.JoinVertical(
 				lipgloss.Center,
-				me.Pool.Render(false),
+				me.Pool().Render(false),
 				me.StyledPlayerName(s.style),
-				strconv.Itoa(score.Calculate(me.Board)),
+				strconv.Itoa(score.Calculate(me.Board())),
 			),
 		)
 

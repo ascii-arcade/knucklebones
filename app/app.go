@@ -1,14 +1,14 @@
 package app
 
 import (
+	"log/slog"
+
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/ssh"
 	"github.com/charmbracelet/wish/bubbletea"
 
 	"github.com/ascii-arcade/knucklebones/board"
-	"github.com/ascii-arcade/knucklebones/config"
 	"github.com/ascii-arcade/knucklebones/dice"
-	"github.com/ascii-arcade/knucklebones/language"
 	"github.com/ascii-arcade/knucklebones/menu"
 	"github.com/ascii-arcade/knucklebones/messages"
 	"github.com/ascii-arcade/knucklebones/players"
@@ -54,9 +54,12 @@ func TeaHandler(sess ssh.Session) (tea.Model, []tea.ProgramOption) {
 
 	dice.Setup(style)
 
-	languagePreference := language.LanguagePreference{Lang: config.Language}
-
-	player := players.NewPlayer(sess.Context(), sess, &languagePreference)
+	player, ok := sess.Context().Value("PLAYER").(*players.Player)
+	if !ok {
+		slog.Warn("That's weird")
+		sess.Close()
+		return nil, nil
+	}
 
 	m := Model{
 		board: board.NewModel(pty.Window.Width, pty.Window.Height, style, player),

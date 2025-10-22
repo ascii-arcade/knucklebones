@@ -42,19 +42,17 @@ func (m *Model) SetGame(game *games.Game) {
 
 func (m Model) Init() tea.Cmd {
 	return tea.Batch(
-		waitForRefreshSignal(m.player.UpdateChan),
+		waitForRefreshSignal(m.player.UpdateChan()),
 		tea.WindowSize(),
 	)
-}
-
-func (m *Model) lang() *language.Language {
-	return m.player.LanguagePreference.Lang
 }
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	cmds := make([]tea.Cmd, 0)
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
+		m.player.SignalActivity()
+
 		if keys.ExitApplication.TriggeredBy(msg.String()) {
 			m.game.RemovePlayer(m.player)
 			return m, tea.Quit
@@ -65,7 +63,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case messages.RefreshBoard:
-		cmds = append(cmds, waitForRefreshSignal(m.player.UpdateChan))
+		cmds = append(cmds, waitForRefreshSignal(m.player.UpdateChan()))
 	}
 
 	activeScreenModel, cmd := m.activeScreen().Update(msg)
@@ -92,4 +90,8 @@ func waitForRefreshSignal(ch chan struct{}) tea.Cmd {
 	return func() tea.Msg {
 		return messages.RefreshBoard(<-ch)
 	}
+}
+
+func (m *Model) lang() *language.Language {
+	return language.Languages[m.player.LanguagePreference]
 }

@@ -3,12 +3,14 @@ package games
 import (
 	"errors"
 
-	"github.com/ascii-arcade/knucklebones/generaterandom"
+	"github.com/ascii-arcade/knucklebones/players"
+	"github.com/ascii-arcade/knucklebones/utils"
 )
 
 var (
 	ErrGameInProgress = errors.New("game_already_in_progress")
 	ErrGameNotFound   = errors.New("game_not_found")
+	ErrGameFull       = errors.New("game_full")
 	ErrNotYourTurn    = errors.New("not_your_turn")
 	ErrDiceNotRolled  = errors.New("dice_not_rolled")
 	ErrColumnFull     = errors.New("column_full")
@@ -18,7 +20,11 @@ var games = make(map[string]*Game)
 
 func New() *Game {
 	game := &Game{
-		Code: generaterandom.Code(),
+		Code: utils.Code(),
+		players: []struct {
+			player *players.Player
+			data   *PlayerData
+		}{},
 	}
 	games[game.Code] = game
 

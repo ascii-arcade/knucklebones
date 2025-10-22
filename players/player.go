@@ -5,8 +5,6 @@ import (
 	"time"
 
 	"github.com/ascii-arcade/knucklebones/database"
-	"github.com/ascii-arcade/knucklebones/dice"
-	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/ssh"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -20,14 +18,6 @@ type Player struct {
 	LanguagePreference string            `bson:"language_preference"`
 	LastConnectedAt    *time.Time        `bson:"last_connected_at,omitempty"`
 	Visitor            bool              `bson:"visitor"`
-
-	color     lipgloss.Color
-	turnOrder int
-	connected bool
-	score     int `bson:"score"`
-	isHost    bool
-	board     []dice.DicePool
-	pool      dice.DicePool
 
 	sess         ssh.Session
 	updateChan   chan struct{}
@@ -50,26 +40,32 @@ func (p *Player) SetName(name string) *Player {
 	return p
 }
 
-func (p *Player) StyledPlayerName(style lipgloss.Style) string {
-	if p == nil {
-		return ""
-	}
-	return style.Foreground(p.color).Render(p.Name)
-}
-
-func (p *Player) SetTurnOrder(order int) *Player {
-	p.turnOrder = order
-	return p
+func (p *Player) IsConnected() bool {
+	_, ok := players[p.Id]
+	return ok
 }
 
 func (p *Player) OnDisconnect(fn func()) {
 	p.onDisconnect = append(p.onDisconnect, fn)
 }
 
-func (p *Player) MakeHost() {
-	p.isHost = true
+func (p *Player) SetLanguage(lang string) {
+	p.LanguagePreference = lang
+	_ = p.Save()
 }
 
-func (p *Player) IsHost() bool {
-	return p.isHost
+func (p *Player) UpdateChan() chan struct{} {
+	if p.updateChan == nil {
+		p.updateChan = make(chan struct{}, 1)
+	}
+	return p.updateChan
+}
+
+func (p *Player) SignalActivity() {
+	if p.updateChan != nil {
+		select {
+		case p.updateChan <- struct{}{}:
+		default:
+		}
+	}
 }

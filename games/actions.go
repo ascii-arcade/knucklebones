@@ -36,7 +36,7 @@ func (a *Action) Save() error {
 func (g *Game) saveAction(actionType ActionType) {
 	action := Action{
 		GameID:    g.Id,
-		PlayerID:  g.GetTurnPlayer().Id,
+		PlayerID:  g.getTurnPlayer().Id,
 		Action:    actionType,
 		Turn:      g.Turn,
 		Timestamp: time.Now().UTC(),
@@ -64,15 +64,11 @@ func (g *Game) Begin() error {
 
 func (g *Game) Reset() {
 	g.withLock(func() {
-		g.playerOne.Board = make([]dice.DicePool, 3)
-		g.playerTwo.Board = make([]dice.DicePool, 3)
-		for i := range g.playerOne.Board {
-			g.playerOne.Board[i] = make(dice.DicePool, 3)
-			g.playerTwo.Board[i] = make(dice.DicePool, 3)
-		}
+		g.playerOneData().ResetBoard()
+		g.playerTwoData().ResetBoard()
 
-		g.playerOne.Pool = make(dice.DicePool, 1)
-		g.playerTwo.Pool = make(dice.DicePool, 1)
+		g.playerOneData().ResetPool()
+		g.playerTwoData().ResetPool()
 
 		g.rolled = false
 		g.Finished = false
@@ -84,9 +80,9 @@ func (g *Game) RollDice(rolling bool) {
 	g.withLock(func() {
 		switch g.Turn {
 		case 0:
-			g.playerOne.Pool.Roll()
+			g.playerOneData().Pool().Roll()
 		case 1:
-			g.playerTwo.Pool.Roll()
+			g.playerTwoData().Pool().Roll()
 		}
 
 		if !rolling {
@@ -107,17 +103,20 @@ func (g *Game) PlaceDie(p *players.Player, column int) error {
 			return ErrDiceNotRolled
 		}
 
-		spot := nextSpot(p.Board[column])
+		data := g.GetPlayerData(p)
+		spot := nextSpot(data.board[column])
 		if spot == -1 {
 			return ErrColumnFull
 		}
 
-		p.Board[column][spot] = p.Pool[0]
-		p.Pool = make(dice.DicePool, 1)
+		data.board[column][spot] = data.board[column][spot]
+		data.board[column][spot] = data.pool[0]
+		data.pool = make(dice.DicePool, 1)
 
-		removeSame(g.GetOpponent(p).Board[column], p.Board[column][spot])
+		oData := g.GetPlayerData(g.GetOpponent(p))
+		removeSame(oData.board[column], oData.board[column][spot])
 
-		if full(p.Board) {
+		if full(data.board) {
 			g.Finished = true
 			return nil
 		}

@@ -14,6 +14,7 @@ import (
 	"github.com/ascii-arcade/knucklebones/app"
 	"github.com/ascii-arcade/knucklebones/config"
 	"github.com/ascii-arcade/knucklebones/database"
+	"github.com/ascii-arcade/knucklebones/language"
 	"github.com/ascii-arcade/knucklebones/players"
 	"github.com/ascii-arcade/knucklebones/web"
 	"github.com/charmbracelet/log"
@@ -62,7 +63,7 @@ func main() {
 			player, found := players.Get(decodedKey)
 			if !found {
 				var err error
-				if player, err = players.NewPlayer(ctx, "default", decodedKey, "en"); err != nil {
+				if player, err = players.NewPlayer(ctx, "default", decodedKey, language.LanguageEN); err != nil {
 					slog.Error("could not create player", "error", err)
 					return false
 				}
