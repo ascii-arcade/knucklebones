@@ -40,7 +40,7 @@ func Run() error {
 		totalGames := len(games.GetAll())
 		totalStartedGames := 0
 		for _, game := range games.GetAll() {
-			if game.InProgress() {
+			if game.InProgress {
 				totalStartedGames++
 			}
 		}

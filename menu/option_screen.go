@@ -46,7 +46,7 @@ func (s *optionScreen) Update(msg tea.Msg) (any, tea.Cmd) {
 		}
 		if keys.MenuStartNewGame.TriggeredBy(msg.String()) {
 			newGame := games.New()
-			if err := s.model.joinGame(newGame.Code, true); err != nil {
+			if err := s.model.joinGame(newGame.Code); err != nil {
 				s.model.setError(err.Error())
 				return s.model, nil
 			}

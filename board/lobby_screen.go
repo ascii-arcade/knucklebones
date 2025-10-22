@@ -45,7 +45,7 @@ func (s *lobbyScreen) Update(msg tea.Msg) (any, tea.Cmd) {
 		}
 
 	case messages.RefreshBoard:
-		if s.model.game.InProgress() {
+		if s.model.game.InProgress {
 			return s.model, func() tea.Msg {
 				return messages.SwitchScreenMsg{
 					Screen: s.model.newTableScreen(),

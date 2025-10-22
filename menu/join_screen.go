@@ -56,7 +56,7 @@ func (s *joinScreen) Update(msg tea.Msg) (any, tea.Cmd) {
 					}
 				}
 
-				if err := s.model.joinGame(code, false); err != nil {
+				if err := s.model.joinGame(code); err != nil {
 					s.model.setError(err.Error())
 					return s.model, nil
 				}

@@ -122,11 +122,7 @@ func (m *Model) clearError() {
 	m.errorCode = ""
 }
 
-func (m *Model) joinGame(code string, isHost bool) error {
-	if isHost {
-		m.player.MakeHost()
-	}
-
+func (m *Model) joinGame(code string) error {
 	game, err := games.GetOpenGame(code)
 	if err != nil && !(errors.Is(err, games.ErrGameInProgress) && game.HasPlayer(m.player)) {
 		return err

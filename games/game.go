@@ -1,33 +1,83 @@
 package games
 
 import (
+	"errors"
+	"log/slog"
 	"sync"
+	"time"
 
+	"github.com/ascii-arcade/knucklebones/database"
 	"github.com/ascii-arcade/knucklebones/dice"
 	"github.com/ascii-arcade/knucklebones/players"
 	"github.com/ascii-arcade/knucklebones/score"
+	"github.com/ascii-arcade/knucklebones/utils"
 	"github.com/charmbracelet/ssh"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type Game struct {
-	Code      string
-	PlayerOne *players.Player
-	PlayerTwo *players.Player
+	Id         string `bson:"_id"`
+	Code       string `bson:"code"`
+	InProgress bool   `bson:"in_progress"`
+	WinnerID   string `bson:"winner_id,omitempty"`
+	Turn       int    `bson:"turn"`
 
-	turn     int
+	CreatedAt *time.Time `bson:"created_at"`
+	UpdatedAt *time.Time `bson:"updated_at,omitempty"`
+	EndedAt   *time.Time `bson:"ended_at,omitempty"`
+
+	playerOne *players.Player
+	playerTwo *players.Player
+
 	rolled   bool
 	Finished bool
 
-	inProgress bool
-	mu         sync.Mutex
+	mu sync.Mutex
 }
 
-func (g *Game) InProgress() bool {
-	return g.inProgress
+func (g *Game) Save() error {
+	g.UpdatedAt = utils.ToPointer(time.Now())
+	collection := database.GetDB().Collection(database.CollectionGames)
+
+	gameJson, err := g.toJson()
+	if err != nil {
+		return err
+	}
+
+	opts := options.Replace().SetUpsert(true)
+	_, err = collection.ReplaceOne(database.GetDB().Context(), bson.M{"_id": g.Id}, gameJson, opts)
+	return err
+}
+
+func (g *Game) toJson() (map[string]any, error) {
+	playerOneId := ""
+	playerTwoId := ""
+	if g.playerOne != nil {
+		playerOneId = g.playerOne.Id
+	}
+	if g.playerTwo != nil {
+		playerTwoId = g.playerTwo.Id
+	}
+
+	var gameMap map[string]any
+	bytes, err := bson.Marshal(g)
+	if err != nil {
+		slog.Error("error marshalling game to json", "error", err)
+		return nil, err
+	}
+	if err := bson.Unmarshal(bytes, &gameMap); err != nil {
+		slog.Error("error unmarshalling game to map", "error", err)
+		return nil, err
+	}
+	gameMap["player_one_id"] = playerOneId
+	gameMap["player_two_id"] = playerTwoId
+
+	return gameMap, nil
 }
 
 func (g *Game) refresh() {
-	players := []*players.Player{g.PlayerOne, g.PlayerTwo}
+	players := []*players.Player{g.playerOne, g.playerTwo}
 	for _, p := range players {
 		if p != nil && p.UpdateChan != nil {
 			select {
@@ -70,20 +120,25 @@ func (g *Game) AddPlayer(player *players.Player) error {
 			return nil
 		}
 
-		if g.inProgress {
+		if g.InProgress {
 			return ErrGameInProgress
 		}
 
 		player.OnDisconnect(func() {
-			if !g.inProgress {
+			if !g.InProgress {
 				g.RemovePlayer(player)
 			}
 		})
 
-		if player.IsHost() {
-			g.PlayerOne = player
-		} else {
-			g.PlayerTwo = player
+		if g.playerOne == nil {
+			player.MakeHost()
+			g.playerOne = player
+			return nil
+		}
+
+		if g.playerTwo == nil {
+			g.playerTwo = player
+			return nil
 		}
 
 		return nil
@@ -94,31 +149,31 @@ func (g *Game) RemovePlayer(player *players.Player) {
 	g.withLock(func() {
 		if player, exists := g.getPlayer(player.Sess); exists {
 			close(player.UpdateChan)
-			if g.PlayerOne == player {
-				g.PlayerOne = nil
-			} else if g.PlayerTwo == player {
-				g.PlayerTwo = nil
+			if g.playerOne == player {
+				g.playerOne = nil
+			} else if g.playerTwo == player {
+				g.playerTwo = nil
 			}
 		}
 	})
 }
 
 func (g *Game) getPlayer(sess ssh.Session) (*players.Player, bool) {
-	if g.PlayerOne != nil && g.PlayerOne.Sess.User() == sess.User() {
-		return g.PlayerOne, true
-	} else if g.PlayerTwo != nil && g.PlayerTwo.Sess.User() == sess.User() {
-		return g.PlayerTwo, true
+	if g.playerOne != nil && g.playerOne.Sess.User() == sess.User() {
+		return g.playerOne, true
+	} else if g.playerTwo != nil && g.playerTwo.Sess.User() == sess.User() {
+		return g.playerTwo, true
 	}
 	return nil, false
 }
 
 func (g *Game) GetPlayers() []*players.Player {
 	var players []*players.Player
-	if g.PlayerOne != nil {
-		players = append(players, g.PlayerOne)
+	if g.playerOne != nil {
+		players = append(players, g.playerOne)
 	}
-	if g.PlayerTwo != nil {
-		players = append(players, g.PlayerTwo)
+	if g.playerTwo != nil {
+		players = append(players, g.playerTwo)
 	}
 	return players
 }
@@ -126,11 +181,11 @@ func (g *Game) GetPlayers() []*players.Player {
 func (g *Game) GetDisconnectedPlayers() []*players.Player {
 	var players []*players.Player
 	g.withLock(func() {
-		if !g.PlayerOne.Connected {
-			players = append(players, g.PlayerOne)
+		if !g.playerOne.Connected {
+			players = append(players, g.playerOne)
 		}
-		if !g.PlayerTwo.Connected {
-			players = append(players, g.PlayerTwo)
+		if !g.playerTwo.Connected {
+			players = append(players, g.playerTwo)
 		}
 	})
 
@@ -149,35 +204,20 @@ func (g *Game) HasPlayer(player *players.Player) bool {
 }
 
 func (g *Game) nextTurn() {
-	if g.turn == 0 {
-		g.turn = 1
+	if g.Turn == 0 {
+		g.Turn = 1
 	} else {
-		g.turn = 0
+		g.Turn = 0
 	}
 
 	g.rolled = false
 }
 
-func (g *Game) RollDice(rolling bool) {
-	g.withLock(func() {
-		switch g.turn {
-		case 0:
-			g.PlayerOne.Pool.Roll()
-		case 1:
-			g.PlayerTwo.Pool.Roll()
-		}
-
-		if !rolling {
-			g.rolled = true
-		}
-	})
-}
-
 func (g *Game) GetTurnPlayer() *players.Player {
-	if g.turn == 0 {
-		return g.PlayerOne
+	if g.Turn == 0 {
+		return g.playerOne
 	}
-	return g.PlayerTwo
+	return g.playerTwo
 }
 
 func (g *Game) IsTurn(p *players.Player) bool {
@@ -185,44 +225,14 @@ func (g *Game) IsTurn(p *players.Player) bool {
 }
 
 func (g *Game) IsPlayerOne(p *players.Player) bool {
-	return g.PlayerOne.Name == p.Name
+	return g.playerOne.Name == p.Name
 }
 
 func (g *Game) GetOpponent(p *players.Player) *players.Player {
-	if g.PlayerOne == p {
-		return g.PlayerTwo
+	if g.playerOne == p {
+		return g.playerTwo
 	}
-	return g.PlayerOne
-}
-
-func (g *Game) PlaceDie(p *players.Player, column int) error {
-	return g.withErrLock(func() error {
-		if !g.IsTurn(p) {
-			return ErrNotYourTurn
-		}
-
-		if !g.rolled {
-			return ErrDiceNotRolled
-		}
-
-		spot := nextSpot(p.Board[column])
-		if spot == -1 {
-			return ErrColumnFull
-		}
-
-		p.Board[column][spot] = p.Pool[0]
-		p.Pool = make(dice.DicePool, 1)
-
-		removeSame(g.GetOpponent(p).Board[column], p.Board[column][spot])
-
-		if full(p.Board) {
-			g.Finished = true
-			return nil
-		}
-
-		g.nextTurn()
-		return nil
-	})
+	return g.playerOne
 }
 
 func (g *Game) Winner() *players.Player {
@@ -230,31 +240,20 @@ func (g *Game) Winner() *players.Player {
 		return nil
 	}
 
-	pOneScore := score.Calculate(g.PlayerOne.Board)
-	pTwoScore := score.Calculate(g.PlayerTwo.Board)
+	pOneScore := score.Calculate(g.playerOne.Board)
+	pTwoScore := score.Calculate(g.playerTwo.Board)
 	if pOneScore > pTwoScore {
-		return g.PlayerOne
+		return g.playerOne
 	}
 
-	return g.PlayerTwo
+	return g.playerTwo
 }
 
-func (g *Game) Reset() {
-	g.withLock(func() {
-		g.PlayerOne.Board = make([]dice.DicePool, 3)
-		g.PlayerTwo.Board = make([]dice.DicePool, 3)
-		for i := range g.PlayerOne.Board {
-			g.PlayerOne.Board[i] = make(dice.DicePool, 3)
-			g.PlayerTwo.Board[i] = make(dice.DicePool, 3)
-		}
-
-		g.PlayerOne.Pool = make(dice.DicePool, 1)
-		g.PlayerTwo.Pool = make(dice.DicePool, 1)
-
-		g.rolled = false
-		g.Finished = false
-		g.turn = 0
-	})
+func (s *Game) IsPlayerCountOk() error {
+	if s.playerTwo == nil {
+		return errors.New("not_enough_players")
+	}
+	return nil
 }
 
 func nextSpot(pool dice.DicePool) int {
