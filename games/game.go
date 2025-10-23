@@ -115,11 +115,11 @@ func (g *Game) withErrLock(fn func() error) error {
 }
 
 func (g *Game) AddPlayer(player *players.Player) error {
-	return g.withErrLock(func() error {
-		if g.HasPlayer(player) {
-			return nil
-		}
+	if g.HasPlayer(player) {
+		return nil
+	}
 
+	return g.withErrLock(func() error {
 		if g.InProgress {
 			return ErrGameInProgress
 		}
@@ -139,16 +139,27 @@ func (g *Game) AddPlayer(player *players.Player) error {
 			}
 		})
 
-		if g.players[0].player == nil {
+		if len(g.players) == 0 {
 			data.IsHost = true
-			g.players[0].player = player
-			g.players[0].data = data
+			g.players = append(g.players, struct {
+				player *players.Player
+				data   *PlayerData
+			}{
+				player: player,
+				data:   data,
+			})
 			return nil
 		}
 
-		if g.players[1].player == nil {
-			g.players[1].player = player
-			g.players[1].data = data
+		if len(g.players) == 1 {
+			g.players = append(g.players, struct {
+				player *players.Player
+				data   *PlayerData
+			}{
+				player: player,
+				data:   data,
+			})
+			return nil
 		}
 
 		return ErrGameFull
@@ -269,7 +280,7 @@ func (g *Game) WinnerData() *PlayerData {
 }
 
 func (s *Game) IsPlayerCountOk() error {
-	if s.players[1].player == nil {
+	if len(s.players) < 2 {
 		return errors.New("not_enough_players")
 	}
 	return nil

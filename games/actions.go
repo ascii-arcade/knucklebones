@@ -65,9 +65,9 @@ func (g *Game) Begin() error {
 func (g *Game) Reset() {
 	g.withLock(func() {
 		g.playerOneData().ResetBoard()
-		g.playerTwoData().ResetBoard()
-
 		g.playerOneData().ResetPool()
+
+		g.playerTwoData().ResetBoard()
 		g.playerTwoData().ResetPool()
 
 		g.rolled = false
@@ -109,12 +109,11 @@ func (g *Game) PlaceDie(p *players.Player, column int) error {
 			return ErrColumnFull
 		}
 
-		data.board[column][spot] = data.board[column][spot]
 		data.board[column][spot] = data.pool[0]
 		data.pool = make(dice.DicePool, 1)
 
 		oData := g.GetPlayerData(g.GetOpponent(p))
-		removeSame(oData.board[column], oData.board[column][spot])
+		removeSame(oData.board[column], data.board[column][spot])
 
 		if full(data.board) {
 			g.Finished = true

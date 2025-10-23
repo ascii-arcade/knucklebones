@@ -39,10 +39,10 @@ func (s *optionScreen) Update(msg tea.Msg) (any, tea.Cmd) {
 
 	case tea.KeyMsg:
 		if keys.MenuEnglish.TriggeredBy(msg.String()) {
-			s.model.player.LanguagePreference = "EN"
+			s.model.player.LanguagePreference = language.LanguageEN
 		}
 		if keys.MenuSpanish.TriggeredBy(msg.String()) {
-			s.model.player.LanguagePreference = "ES"
+			s.model.player.LanguagePreference = language.LanguageES
 		}
 		if keys.MenuStartNewGame.TriggeredBy(msg.String()) {
 			newGame := games.New()
@@ -72,10 +72,10 @@ func (s *optionScreen) View() string {
 	content.WriteString(fmt.Sprintf(s.model.lang().Get("menu", "press_to_join"), keys.MenuJoinGame.String(s.style)) + "\n")
 	content.WriteString("\n\n")
 
-	if s.model.lang() == language.Languages["EN"] {
-		content.WriteString(fmt.Sprintf(language.Languages["ES"].Get("menu", "choose_language"), keys.MenuSpanish.String(s.style)))
-	} else if s.model.lang() == language.Languages["ES"] {
-		content.WriteString(fmt.Sprintf(language.Languages["EN"].Get("menu", "choose_language"), keys.MenuEnglish.String(s.style)))
+	if s.model.lang() == language.Languages[language.LanguageEN] {
+		content.WriteString(fmt.Sprintf(language.Languages[language.LanguageES].Get("menu", "choose_language"), keys.MenuSpanish.String(s.style)))
+	} else if s.model.lang() == language.Languages[language.LanguageES] {
+		content.WriteString(fmt.Sprintf(language.Languages[language.LanguageEN].Get("menu", "choose_language"), keys.MenuEnglish.String(s.style)))
 	}
 
 	content.WriteString("\n\n")
