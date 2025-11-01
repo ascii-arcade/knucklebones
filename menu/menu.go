@@ -40,7 +40,7 @@ type Model struct {
 	screen screen.Screen
 	style  lipgloss.Style
 
-	errorCode     string
+	error         string
 	gameCodeInput textinput.Model
 
 	player *players.Player
@@ -115,11 +115,11 @@ func (m Model) View() string {
 }
 
 func (m *Model) setError(err string) {
-	m.errorCode = err
+	m.error = err
 }
 
 func (m *Model) clearError() {
-	m.errorCode = ""
+	m.error = ""
 }
 
 func (m *Model) joinGame(code string) error {

@@ -38,13 +38,21 @@ func (s *optionScreen) Update(msg tea.Msg) (any, tea.Cmd) {
 		return s.model, nil
 
 	case tea.KeyMsg:
-		if keys.MenuEnglish.TriggeredBy(msg.String()) {
+		switch {
+		case keys.MenuEnglish.TriggeredBy(msg.String()):
 			s.model.player.LanguagePreference = language.LanguageEN
-		}
-		if keys.MenuSpanish.TriggeredBy(msg.String()) {
+		case keys.MenuSpanish.TriggeredBy(msg.String()):
 			s.model.player.LanguagePreference = language.LanguageES
-		}
-		if keys.MenuStartNewGame.TriggeredBy(msg.String()) {
+		case keys.MenuEditProfile.TriggeredBy(msg.String()):
+			if s.model.player.Visitor {
+				return s.model, nil
+			}
+			return s.model, func() tea.Msg {
+				return messages.SwitchScreenMsg{
+					Screen: s.model.newEditProfileScreen(),
+				}
+			}
+		case keys.MenuStartNewGame.TriggeredBy(msg.String()):
 			newGame := games.New()
 			if err := s.model.joinGame(newGame.Code); err != nil {
 				s.model.setError(err.Error())
@@ -52,8 +60,7 @@ func (s *optionScreen) Update(msg tea.Msg) (any, tea.Cmd) {
 			}
 
 			return s.model, func() tea.Msg { return messages.SwitchToBoardMsg{Game: newGame} }
-		}
-		if keys.MenuJoinGame.TriggeredBy(msg.String()) {
+		case keys.MenuJoinGame.TriggeredBy(msg.String()):
 			return s.model, func() tea.Msg {
 				return messages.SwitchScreenMsg{
 					Screen: s.model.newJoinScreen(),
@@ -70,6 +77,9 @@ func (s *optionScreen) View() string {
 	content.WriteString(s.model.lang().Get("menu", "welcome") + "\n\n")
 	content.WriteString(fmt.Sprintf(s.model.lang().Get("menu", "press_to_create"), keys.MenuStartNewGame.String(s.style)) + "\n")
 	content.WriteString(fmt.Sprintf(s.model.lang().Get("menu", "press_to_join"), keys.MenuJoinGame.String(s.style)) + "\n")
+	if !s.model.player.Visitor {
+		content.WriteString(fmt.Sprintf(s.model.lang().Get("menu", "press_to_edit_profile"), keys.MenuEditProfile.String(s.style)) + "\n")
+	}
 	content.WriteString("\n\n")
 
 	if s.model.lang() == language.Languages[language.LanguageEN] {
@@ -81,5 +91,7 @@ func (s *optionScreen) View() string {
 	content.WriteString("\n\n")
 	content.WriteString(s.style.Foreground(lipgloss.Color("#555555")).Render(config.Version))
 
-	return content.String()
+	style := lipgloss.NewStyle().AlignVertical(lipgloss.Center).AlignHorizontal(lipgloss.Left).Width(lipgloss.Width(content.String()))
+
+	return style.Render(content.String())
 }

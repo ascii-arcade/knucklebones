@@ -85,8 +85,8 @@ func (s *joinScreen) Update(msg tea.Msg) (any, tea.Cmd) {
 
 func (s *joinScreen) View() string {
 	errorMessage := ""
-	if s.model.errorCode != "" {
-		errorMessage = s.model.lang().Get("error", s.model.errorCode)
+	if s.model.error != "" {
+		errorMessage = s.model.lang().Get("error", s.model.error)
 	}
 
 	var content strings.Builder

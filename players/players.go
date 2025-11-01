@@ -2,6 +2,7 @@ package players
 
 import (
 	"context"
+	"maps"
 	"time"
 
 	"github.com/ascii-arcade/knucklebones/config"
@@ -23,7 +24,7 @@ func NewPlayer(ctx context.Context, pkn, pk, langPref string) (*Player, error) {
 
 	player := &Player{
 		Id:                 uuid.New().String(),
-		Name:               utils.GenerateName(language.Languages[langPref]),
+		Username:           utils.GenerateName(language.Languages[langPref]),
 		Discriminator:      utils.GenerateDescriminator(),
 		SshPubKeys:         map[string]string{pkn: pk},
 		LanguagePreference: langPref,
@@ -155,4 +156,51 @@ func GetVisitorPlayerCount() int {
 
 func GetConnectedPlayerCount() int {
 	return len(players)
+}
+
+func GetByName(username, discriminator string) (*Player, bool) {
+	for _, player := range players {
+		if player.Username == username && player.Discriminator == discriminator {
+			return player, true
+		}
+	}
+
+	pipeline := []map[string]any{
+		{
+			"$match": map[string]any{
+				"username":      username,
+				"discriminator": discriminator,
+			},
+		},
+	}
+
+	cursor, err := database.GetDB().Collection(database.CollectionPlayers).Aggregate(context.Background(), pipeline)
+	if err == nil {
+		defer cursor.Close(context.Background())
+		if cursor.Next(context.Background()) {
+			var player Player
+			if err := cursor.Decode(&player); err == nil {
+				return &player, true
+			}
+		}
+	}
+
+	return nil, false
+}
+
+func Merge(target, source *Player) error {
+	maps.Copy(target.SshPubKeys, source.SshPubKeys)
+	if err := target.Save(); err != nil {
+		return err
+	}
+
+	return DeletePlayer(source)
+}
+
+func DeletePlayer(player *Player) error {
+	RemovePlayer(player)
+	_, err := database.GetDB().Collection(database.CollectionPlayers).DeleteOne(context.Background(), map[string]any{
+		"id": player.Id,
+	})
+	return err
 }

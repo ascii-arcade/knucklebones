@@ -125,7 +125,7 @@ func (g *Game) AddPlayer(player *players.Player) error {
 		}
 
 		data := &PlayerData{
-			Name:      player.Name,
+			Name:      player.Username,
 			Color:     lipgloss.Color(utils.Color()),
 			InGame:    true,
 			turnOrder: len(g.players),

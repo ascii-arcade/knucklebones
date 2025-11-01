@@ -13,9 +13,15 @@ var (
 	MenuStartNewGame = Keys{"n"}
 	MenuEnglish      = Keys{"1"}
 	MenuSpanish      = Keys{"2"}
+	MenuEditProfile  = Keys{"p"}
+
+	Back    = Keys{"q"}
+	Confirm = Keys{"y", "Y", "enter"}
 
 	PreviousScreen = Keys{"esc"}
 	Submit         = Keys{"enter"}
+	Up             = Keys{"up", "shift+tab"}
+	Down           = Keys{"down", "tab"}
 
 	ExitApplication = Keys{"ctrl+c"}
 	LobbyStartGame  = Keys{"s"}

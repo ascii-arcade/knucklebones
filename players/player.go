@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/ascii-arcade/knucklebones/database"
+	"github.com/ascii-arcade/knucklebones/utils"
 	"github.com/charmbracelet/ssh"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -12,7 +13,7 @@ import (
 
 type Player struct {
 	Id                 string            `bson:"_id,omitempty"`
-	Name               string            `bson:"name"`
+	Username           string            `bson:"username"`
 	Discriminator      string            `bson:"discriminator"`
 	SshPubKeys         map[string]string `bson:"ssh_pub_keys"`
 	LanguagePreference string            `bson:"language_preference"`
@@ -35,9 +36,11 @@ func (p *Player) Save() error {
 	return err
 }
 
-func (p *Player) SetName(name string) *Player {
-	p.Name = name
-	return p
+func (p *Player) UpdateUsername(username string) {
+	if _, exists := GetByName(username, p.Discriminator); exists {
+		p.Discriminator = utils.GenerateDescriminator()
+	}
+	_ = p.Save()
 }
 
 func (p *Player) IsConnected() bool {
@@ -68,4 +71,9 @@ func (p *Player) SignalActivity() {
 		default:
 		}
 	}
+}
+
+func (p *Player) AddPubKey(name, pKey string) {
+	p.SshPubKeys[name] = pKey
+	_ = p.Save()
 }

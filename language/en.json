@@ -3,7 +3,8 @@
   "name": "English",
   "translations": {
     "global": {
-      "quit": "Press %s to quit the game"
+      "quit": "Press %s to quit the game",
+      "go_back": "Press %s to go back"
     },
     "error": {
       "player_not_found": "Player not found",
@@ -12,21 +13,40 @@
       "game_not_found": "Game not found",
       "game_already_in_progress": "Game already in progress",
       "window_too_narrow": "Window too narrow, please resize",
-      "window_too_short": "Window too short, please resize"
+      "window_too_short": "Window too short, please resize",
+      "edit_profile": {
+        "invalid_key": "Invalid SSH public key, please try again\nMake sure it starts with 'ssh-rsa', 'ssh-ed25519', or 'ssh-dss'",
+        "name_and_key_required": "Both SSH Key Name and Key are required",
+        "key_name_exists": "An SSH key with that name already exists",
+        "key_in_use": "This SSH key is already in use by another player",
+        "player_name_required": "Player name cannot be empty",
+        "player_name_format_required": "Player name must be in the format 'username#1234'",
+        "same_player_merge": "Cannot merge the same player",
+        "min_ssh_keys_required": "You must have at least one Public SSH key"
+      }
     },
     "menu": {
       "choose_language": "For english, press %s",
       "enter_code": "Enter the game code to join:",
       "welcome": "Welcome to the game!",
-      "press_to_create": "Press %s to create a new game",
-      "press_to_join": "Press %s to join an existing game"
+      "press_to_create": "%s | New game",
+      "press_to_join": "%s | Join game",
+      "press_to_edit_profile": "%s | Edit profile",
+      "edit_profile": {
+        "set_player_name": "%s | Set Player Name",
+        "add_ssh_key": "%s | Add Public SSH Key",
+        "manage_ssh_keys": "%s | Manage Public SSH Keys",
+        "key_name": "Key Name",
+        "public_key": "Public Key",
+        "add_ssh_key_github": "%s | Add Public SSH keys from GitHub"
+      }
     },
     "board": {
       "waiting_for_start": "Waiting for the host to start the game...",
       "press_to_start": "Press %s to start the game",
       "player_list_you": "you",
       "player_list_host": "host",
-      "you_are" : "You are %s",
+      "you_are": "You are %s",
       "disconnected_player": "%s has disconnected. Waiting for them to reconnect...",
       "game_over": "Game over! The winner is %s!",
       "reset_game": "Press %s to reset the game"
